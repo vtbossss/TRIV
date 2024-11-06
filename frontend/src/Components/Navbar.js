@@ -1,4 +1,10 @@
 import React from 'react'
+// import { Routes, Route } from 'react-router-dom'
+// import MainHeader from '../Pages/MainHeader'
+// import Home from '../Pages/Home'
+// import DataInfo from '../Pages/DataInfo'
+// import About from '../Pages/About'
+import { NavLink } from 'react-router-dom'
 
 const Navbar = () => {
   return (
@@ -13,9 +19,11 @@ const Navbar = () => {
         
         {/* Navigation Links */}
         <div className="flex space-x-4">
-          <a href="/" className="hover:text-gray-200">Home</a>
-          <a href="/data-sources" className="hover:text-gray-200">Data Sources</a>
-          <a href="/about" className="hover:text-gray-200">About</a>
+        
+          <NavLink to="/" className="hover:text-gray-200">Home</NavLink>
+            <NavLink to="/dataInfo" className="hover:text-gray-200">Data Sources</NavLink>
+            <NavLink to="/about" className="hover:text-gray-200">About</NavLink>
+
         </div>
         
         {/* Optional: Theme Toggle */}
@@ -24,6 +32,14 @@ const Navbar = () => {
         </button>
         
       </div>
+
+      {/* <Routes>
+        <Route path="/" element={<MainHeader />} />
+        <Route index element={<Home />} />
+        <Route path="/dataInfo" element={<DataInfo />} />
+        <Route path="/about" element={<About />} />
+     </Routes> */}
+
     </nav>
     </div>
   )
