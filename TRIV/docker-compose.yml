@@ -1,0 +1,30 @@
+services:
+  zookeeper:
+    image: wurstmeister/zookeeper:latest
+    platform: linux/amd64
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    platform: linux/amd64
+    ports:
+      - "9093:9093"  # External port for client connections to Kafka
+    environment:
+      # Define listeners for internal and external access
+      - KAFKA_ADVERTISED_LISTENERS=INSIDE://kafka:9092,OUTSIDE://localhost:9093
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT  # Map each listener to PLAINTEXT protocol
+      - KAFKA_LISTENERS=INSIDE://0.0.0.0:9092,OUTSIDE://0.0.0.0:9093  # Bind listeners to 0.0.0.0 for accessibility
+
+      # Set inter-broker listener to INSIDE for internal broker communication
+      - KAFKA_INTER_BROKER_LISTENER_NAME=INSIDE
+
+      # Increase the maximum request and message size
+      - KAFKA_MAX_REQUEST_SIZE=209715200  # 200 MB
+      - KAFKA_MESSAGE_MAX_BYTES=209715200  # 200 MB
+
+      # Basic configurations
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181  # Connect Kafka to the ZooKeeper service
+
+    depends_on:
+      - zookeeper
