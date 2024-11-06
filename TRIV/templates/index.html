@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agro Data</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 10px;
+        }
+
+        h1 {
+            color: #4CAF50;
+        }
+
+        #soil-data {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+
+        .data-field {
+            margin: 5px 0;
+        }
+
+        .data-field strong {
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <h1>Soil Data</h1>
+    <div id="soil-data">
+        Waiting for data...
+    </div>
+
+    <script>
+        const socket = new WebSocket('ws://' + window.location.host + '/ws/agro_data/');
+    
+        // WebSocket connection is opened
+        socket.onopen = function() {
+            console.log('WebSocket connection established');
+        };
+    
+        // Handle incoming message from the WebSocket
+        socket.onmessage = function(e) {
+            console.log('Message received from WebSocket:', e.data);  // Debugging log
+
+            const data = JSON.parse(e.data);
+            console.log('Parsed data:', data);  // Log the entire parsed data
+
+            const soilDataElement = document.getElementById('soil-data');
+
+            // Check if the required data exists, otherwise show a message
+            if (data && data.data && data.data.data) {
+                const soilData = data.data.data;  // Access the nested data
+
+                // Correctly access the timestamp from data.data
+                let formattedTimestamp = 'N/A';
+                if (data.data.timestamp) {
+                    // Ensure timestamp is a valid number and convert it to a readable format
+                    const timestamp = parseFloat(data.data.timestamp);
+                    console.log('Parsed timestamp:', timestamp);  // Log the parsed timestamp
+
+                    if (!isNaN(timestamp)) {
+                        formattedTimestamp = new Date(timestamp * 1000).toLocaleString(); // Convert UNIX to readable
+                    }
+                }
+
+                soilDataElement.innerHTML = `
+                    <div class="data-field">
+                        <strong>Moisture:</strong> ${soilData.moisture !== undefined ? soilData.moisture : 'N/A'}<br>
+                    </div>
+                    <div class="data-field">
+                        <strong>Temperature at 0m:</strong> ${soilData.t0 !== undefined ? soilData.t0 : 'N/A'} k<br>
+                    </div>
+                    <div class="data-field">
+                        <strong>Temperature at 10m:</strong> ${soilData.t10 !== undefined ? soilData.t10 : 'N/A'} k<br>
+                    </div>
+                    <div class="data-field">
+                        <strong>Timestamp:</strong> ${formattedTimestamp}<br>
+                    </div>
+                `;
+            } else {
+                soilDataElement.innerHTML = 'Received invalid or incomplete data. Please try again later.';
+            }
+        };
+    
+        // Handle WebSocket close event
+        socket.onclose = function(e) {
+            console.error('WebSocket closed unexpectedly', e);
+            const soilDataElement = document.getElementById('soil-data');
+            soilDataElement.innerHTML = 'Connection closed. Please try again later.';
+        };
+    
+        // Handle WebSocket error event
+        socket.onerror = function(e) {
+            console.error('WebSocket error:', e);
+            const soilDataElement = document.getElementById('soil-data');
+            soilDataElement.innerHTML = 'Error connecting to the server. Please check your connection.';
+        };
+    </script>
+</body>
+</html>
