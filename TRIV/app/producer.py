@@ -8,6 +8,7 @@ from django.conf import settings
 # Kafka configuration
 from dotenv import load_dotenv
 import os
+import sys
 
 # Load environment variables from .env file
 load_dotenv()
@@ -59,7 +60,36 @@ def send_soil_data_to_kafka():
     else:
         logging.error("No data received from the API.")
 
-# Run the Kafka producer every 12 hours (since soil data is updated twice a day)
-while True:
-    send_soil_data_to_kafka()
-    time.sleep(1)  # Wait for 12 hours before fetching new data
+# Graceful shutdown of Kafka producer
+def shutdown_producer():
+    logging.info("Shutting down producer...")
+    producer.flush()  # Ensure all messages are sent
+    producer.close()  # Close the producer
+
+# Run the Kafka producer at a specific interval (every 12 hours)
+try:
+    while True:
+        send_soil_data_to_kafka()
+        
+        # Calculate the next time to fetch data (12 hours from now)
+        current_time = time.localtime()
+        next_run = time.mktime((current_time.tm_year, current_time.tm_mon, current_time.tm_mday, 12, 0, 0, 0, 0, 0))  # Next 12:00 PM
+        sleep_time = next_run - time.mktime(current_time)  # Time to sleep until next fetch
+        
+        # If we're past 12:00 PM, schedule for next day's 12:00 AM
+        if sleep_time <= 0:
+            next_run = time.mktime((current_time.tm_year, current_time.tm_mon, current_time.tm_mday + 1, 0, 0, 0, 0, 0, 0))
+            sleep_time = next_run - time.mktime(current_time)
+        
+        logging.info(f"Sleeping for {sleep_time} seconds until next fetch.")
+        time.sleep(5)  # Sleep until the next 12:00 PM or 12:00 AM
+    
+except KeyboardInterrupt:
+    logging.info("Producer interrupted. Shutting down...")
+    shutdown_producer()
+    sys.exit(0)
+
+except Exception as e:
+    logging.error(f"An unexpected error occurred: {e}")
+    shutdown_producer()
+    sys.exit(1)
