@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     "app",
     "channels",
     "corsheaders",
+    "ndvi",
 ]
 
 MIDDLEWARE = [
