@@ -1,2 +1,86 @@
-/venv
-/TRIV/.env
+# Python bytecode files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Django migration files
+*/migrations/*.py
+*/migrations/*.pyc
+
+# Environment and config files
+*.env
+*.DS_Store
+*.idea/  # For PyCharm and similar IDEs
+*.vscode/  # For VS Code
+
+# Virtual environment folder
+venv/
+env/
+
+# Logs and runtime files
+*.log
+*.pot
+*.mo
+*.pid
+*.sqlite3
+*.pyc
+*.pyo
+*.pyd
+
+# Database
+db.sqlite3
+*.sqlite3
+
+# Media/uploads and static files
+media/
+staticfiles/
+static/
+node_modules/
+
+# Cache, build, and distribution files
+*.egg-info/
+*.eggs/
+dist/
+build/
+*.manifest
+*.lock
+*.bak
+
+# IDE and editor files
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+*.log
+
+# Secret configuration files
+secrets.json
+
+# Django specific
+*.out
+*.log
+*.coverage
+celerybeat-schedule
+.env
+!.gitkeep
+
+# Local settings or custom overrides
+settings_local.py
+
+# .pytest_cache
+.pytest_cache/
+.tox/
+.coverage
+
+# Coverage reports
+htmlcov/
+.coverage
+
+# Jupyter Notebooks
+.ipynb_checkpoints
+
+# MyPy cache
+.mypy_cache/
+
+# Compiled files
+*.so
