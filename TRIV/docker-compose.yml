@@ -25,6 +25,8 @@ services:
 
       # Basic configurations
       - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181  # Connect Kafka to the ZooKeeper service
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      
 
     depends_on:
       - zookeeper
