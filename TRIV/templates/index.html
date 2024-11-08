@@ -7,35 +7,82 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 20px;
-            padding: 10px;
+            margin: 0;
+            padding: 0;
+            background-color: #f2f2f2;
+            color: #333;
+        }
+
+        header {
+            background-color: #4CAF50;
+            color: white;
+            padding: 20px;
+            text-align: center;
         }
 
         h1 {
-            color: #4CAF50;
+            margin: 0;
+            font-size: 2em;
+        }
+
+        #content {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            padding: 20px;
         }
 
         #soil-data {
             margin-top: 20px;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            background-color: #fff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
         }
 
         .data-field {
-            margin: 5px 0;
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            font-size: 1.1em;
         }
 
         .data-field strong {
+            font-weight: 600;
+            color: #4CAF50;
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+
+        .data-icon {
+            font-size: 1.5em;
+            color: #4CAF50;
+            margin-right: 10px;
+        }
+
+        .data-value {
+            font-weight: bold;
             color: #333;
+        }
+
+        .status-message {
+            font-style: italic;
+            color: #888;
         }
     </style>
 </head>
 <body>
-    <h1>Soil Data</h1>
-    <div id="soil-data">
-        Waiting for data...
+    <header>
+        <h1>Soil Data</h1>
+    </header>
+
+    <div id="content">
+        <div id="soil-data">
+            <p class="status-message">Waiting for data...</p>
+        </div>
     </div>
 
     <script>
@@ -44,65 +91,71 @@
         // WebSocket connection is opened
         socket.onopen = function() {
             console.log('WebSocket connection established');
+            updateStatusMessage('Connected to server, awaiting data...');
         };
     
         // Handle incoming message from the WebSocket
         socket.onmessage = function(e) {
-            console.log('Message received from WebSocket:', e.data);  // Debugging log
+            console.log('Message received from WebSocket:', e.data);
 
             const data = JSON.parse(e.data);
-            console.log('Parsed data:', data);  // Log the entire parsed data
+            console.log('Parsed data:', data);
 
             const soilDataElement = document.getElementById('soil-data');
 
-            // Check if the required data exists, otherwise show a message
+            // Check if the required data exists
             if (data && data.data && data.data.data) {
-                const soilData = data.data.data;  // Access the nested data
+                const soilData = data.data.data;
 
-                // Correctly access the timestamp from data.data
                 let formattedTimestamp = 'N/A';
                 if (data.data.timestamp) {
-                    // Ensure timestamp is a valid number and convert it to a readable format
                     const timestamp = parseFloat(data.data.timestamp);
-                    console.log('Parsed timestamp:', timestamp);  // Log the parsed timestamp
+                    console.log('Parsed timestamp:', timestamp);
 
                     if (!isNaN(timestamp)) {
-                        formattedTimestamp = new Date(timestamp * 1000).toLocaleString(); // Convert UNIX to readable
+                        formattedTimestamp = new Date(timestamp * 1000).toLocaleString();
                     }
                 }
 
                 soilDataElement.innerHTML = `
                     <div class="data-field">
-                        <strong>Moisture:</strong> ${soilData.moisture !== undefined ? soilData.moisture : 'N/A'}<br>
+                        <span class="data-icon">🌱</span>
+                        <strong>Moisture:</strong> <span class="data-value">${soilData.moisture !== undefined ? soilData.moisture : 'N/A'}</span>
                     </div>
                     <div class="data-field">
-                        <strong>Temperature at 0m:</strong> ${soilData.t0 !== undefined ? soilData.t0 : 'N/A'} k<br>
+                        <span class="data-icon">🌡️</span>
+                        <strong>Temp at 0m:</strong> <span class="data-value">${soilData.t0 !== undefined ? soilData.t0 : 'N/A'} K</span>
                     </div>
                     <div class="data-field">
-                        <strong>Temperature at 10m:</strong> ${soilData.t10 !== undefined ? soilData.t10 : 'N/A'} k<br>
+                        <span class="data-icon">🌡️</span>
+                        <strong>Temp at 10m:</strong> <span class="data-value">${soilData.t10 !== undefined ? soilData.t10 : 'N/A'} K</span>
                     </div>
                     <div class="data-field">
-                        <strong>Timestamp:</strong> ${formattedTimestamp}<br>
+                        <span class="data-icon">⏰</span>
+                        <strong>Timestamp:</strong> <span class="data-value">${formattedTimestamp}</span>
                     </div>
                 `;
             } else {
-                soilDataElement.innerHTML = 'Received invalid or incomplete data. Please try again later.';
+                soilDataElement.innerHTML = '<p class="status-message">Received invalid or incomplete data. Please try again later.</p>';
             }
         };
     
         // Handle WebSocket close event
         socket.onclose = function(e) {
             console.error('WebSocket closed unexpectedly', e);
-            const soilDataElement = document.getElementById('soil-data');
-            soilDataElement.innerHTML = 'Connection closed. Please try again later.';
+            updateStatusMessage('Connection closed. Please try again later.');
         };
     
         // Handle WebSocket error event
         socket.onerror = function(e) {
             console.error('WebSocket error:', e);
-            const soilDataElement = document.getElementById('soil-data');
-            soilDataElement.innerHTML = 'Error connecting to the server. Please check your connection.';
+            updateStatusMessage('Error connecting to the server. Please check your connection.');
         };
+
+        function updateStatusMessage(message) {
+            const soilDataElement = document.getElementById('soil-data');
+            soilDataElement.innerHTML = `<p class="status-message">${message}</p>`;
+        }
     </script>
 </body>
 </html>
