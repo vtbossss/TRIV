@@ -2,5 +2,5 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path('', views.ndvi, name='ndvi'),  # Existing HTTP route
+    path('history/', views.ndvi_history, name='ndvi_history'),  # Existing HTTP route
 ]
