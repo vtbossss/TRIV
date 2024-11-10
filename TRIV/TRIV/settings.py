@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     "channels",
     "corsheaders",
     "ndvi",
+    "rest_framework"
 ]
 
 MIDDLEWARE = [
@@ -72,18 +73,27 @@ TEMPLATES = [
     },
 ]
 
+GDAL_LIBRARY_PATH = "/opt/homebrew/Cellar/gdal/3.10.0_1/lib/libgdal.dylib"
+
+
 WSGI_APPLICATION = "TRIV.wsgi.application"
 
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
+# settings.py
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+    'default': {
+        'ENGINE': 'django.contrib.gis.db.backends.postgis',
+        'NAME': 'triv_db',
+        'USER': 'triv_user',
+        'PASSWORD': '0755vaibhav',
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
+
 
 
 # Password validation
