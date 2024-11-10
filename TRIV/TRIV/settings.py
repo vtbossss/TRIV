@@ -41,7 +41,8 @@ INSTALLED_APPS = [
     "channels",
     "corsheaders",
     "ndvi",
-    "rest_framework"
+    "rest_framework",
+    "weather",
 ]
 
 MIDDLEWARE = [
