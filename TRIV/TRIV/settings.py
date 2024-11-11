@@ -25,7 +25,7 @@ SECRET_KEY = "django-insecure-k9*wz0#n%r&$13d1q4d9ame@i_06ra2*&6r9m^vlz)*qmm30-6
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -147,9 +147,8 @@ CHANNEL_LAYERS = {
 # settings.py
 ASGI_APPLICATION = "TRIV.asgi.application"
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",  # Replace with your frontend URL
-]
+CORS_ALLOW_ALL_ORIGINS = True
+
 
 
 

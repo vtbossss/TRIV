@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Weather Data</title>
     <style>
-        /* Style setup is the same as your original code */
         body {
             font-family: Arial, sans-serif;
             margin: 0;
@@ -87,7 +86,9 @@
     </div>
 
     <script>
-        const socket = new WebSocket('ws://' + window.location.host + '/ws/weather/');  // Connect to the weather WebSocket
+        const socket = new WebSocket('ws://' + window.location.hostname + ':8000/ws/weather/');
+
+        // Connect to the weather WebSocket
     
         // WebSocket connection is opened
         socket.onopen = function() {
@@ -105,31 +106,39 @@
             const weatherDataElement = document.getElementById('weather-data');
 
             // Check if the required weather data exists
-            if (data && data.weather) {
-                const weather = data.weather;
-
+            if (data && data.weather && data.weather.main && data.weather.wind && data.weather.weather && data.weather.dt) {
+                const weatherMain = data.weather.main;
+                const weatherWind = data.weather.wind;
+                const weatherDescription = data.weather.weather[0];
+                
+                // Convert timestamp
                 let formattedTimestamp = 'N/A';
-                if (data.timestamp) {
-                    const timestamp = parseFloat(data.timestamp);
-                    console.log('Parsed timestamp:', timestamp);
-
-                    if (!isNaN(timestamp)) {
-                        formattedTimestamp = new Date(timestamp * 1000).toLocaleString();
-                    }
+                const timestamp = parseFloat(data.weather.dt);
+                if (!isNaN(timestamp)) {
+                    formattedTimestamp = new Date(timestamp * 1000).toLocaleString();
                 }
 
+                // Render the weather data
                 weatherDataElement.innerHTML = `
                     <div class="data-field">
                         <span class="data-icon">🌡️</span>
-                        <strong>Temperature:</strong> <span class="data-value">${weather.temp !== undefined ? weather.temp : 'N/A'} °C</span>
+                        <strong>Temperature:</strong> <span class="data-value">${weatherMain.temp ? (weatherMain.temp - 273.15).toFixed(2) : 'N/A'} °C</span>
                     </div>
                     <div class="data-field">
                         <span class="data-icon">💧</span>
-                        <strong>Humidity:</strong> <span class="data-value">${weather.humidity !== undefined ? weather.humidity : 'N/A'} %</span>
+                        <strong>Humidity:</strong> <span class="data-value">${weatherMain.humidity !== undefined ? weatherMain.humidity : 'N/A'} %</span>
                     </div>
                     <div class="data-field">
                         <span class="data-icon">🌬️</span>
-                        <strong>Wind Speed:</strong> <span class="data-value">${weather.wind_speed !== undefined ? weather.wind_speed : 'N/A'} m/s</span>
+                        <strong>Wind Speed:</strong> <span class="data-value">${weatherWind.speed !== undefined ? weatherWind.speed : 'N/A'} m/s</span>
+                    </div>
+                    <div class="data-field">
+                        <span class="data-icon">⚖️</span>
+                        <strong>Pressure:</strong> <span class="data-value">${weatherMain.pressure !== undefined ? weatherMain.pressure : 'N/A'} hPa</span>
+                    </div>
+                    <div class="data-field">
+                        <span class="data-icon">☁️</span>
+                        <strong>Weather:</strong> <span class="data-value">${weatherDescription.main} (${weatherDescription.description})</span>
                     </div>
                     <div class="data-field">
                         <span class="data-icon">⏰</span>
