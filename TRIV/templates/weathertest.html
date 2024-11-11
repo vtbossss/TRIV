@@ -3,67 +3,160 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebSocket Test</title>
+    <title>Weather Data</title>
     <style>
+        /* Style setup is the same as your original code */
         body {
             font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f2f2f2;
+            color: #333;
         }
-        #messages {
+
+        header {
+            background-color: #4CAF50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 2em;
+        }
+
+        #content {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        #weather-data {
             margin-top: 20px;
-            height: 300px;
-            border: 1px solid #ccc;
-            padding: 10px;
-            overflow-y: scroll;
+            padding: 20px;
+            border-radius: 8px;
+            background-color: #fff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
         }
-        .message {
-            margin: 5px 0;
+
+        .data-field {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            font-size: 1.1em;
+        }
+
+        .data-field strong {
+            font-weight: 600;
+            color: #4CAF50;
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+
+        .data-icon {
+            font-size: 1.5em;
+            color: #4CAF50;
+            margin-right: 10px;
+        }
+
+        .data-value {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .status-message {
+            font-style: italic;
+            color: #888;
         }
     </style>
 </head>
 <body>
+    <header>
+        <h1>Weather Data</h1>
+    </header>
 
-<h2>WebSocket Test</h2>
+    <div id="content">
+        <div id="weather-data">
+            <p class="status-message">Waiting for data...</p>
+        </div>
+    </div>
 
-<div id="messages"></div>
+    <script>
+        const socket = new WebSocket('ws://' + window.location.host + '/ws/weather/');  // Connect to the weather WebSocket
+    
+        // WebSocket connection is opened
+        socket.onopen = function() {
+            console.log('WebSocket connection established');
+            updateStatusMessage('Connected to server, awaiting weather data...');
+        };
+    
+        // Handle incoming message from the WebSocket
+        socket.onmessage = function(e) {
+            console.log('Message received from WebSocket:', e.data);
 
-<script>
-    let socket;
-    const messagesDiv = document.getElementById('messages');
+            const data = JSON.parse(e.data);
+            console.log('Parsed data:', data);
 
-    // Function to create WebSocket connection immediately when the page loads
-    function connectWebSocket() {
-        socket = new WebSocket('ws://localhost:8000/ws/weather/');  // Adjust the URL based on your WebSocket server
+            const weatherDataElement = document.getElementById('weather-data');
 
-        socket.onopen = function () {
-            addMessage('Connected to WebSocket.');
+            // Check if the required weather data exists
+            if (data && data.weather) {
+                const weather = data.weather;
+
+                let formattedTimestamp = 'N/A';
+                if (data.timestamp) {
+                    const timestamp = parseFloat(data.timestamp);
+                    console.log('Parsed timestamp:', timestamp);
+
+                    if (!isNaN(timestamp)) {
+                        formattedTimestamp = new Date(timestamp * 1000).toLocaleString();
+                    }
+                }
+
+                weatherDataElement.innerHTML = `
+                    <div class="data-field">
+                        <span class="data-icon">🌡️</span>
+                        <strong>Temperature:</strong> <span class="data-value">${weather.temp !== undefined ? weather.temp : 'N/A'} °C</span>
+                    </div>
+                    <div class="data-field">
+                        <span class="data-icon">💧</span>
+                        <strong>Humidity:</strong> <span class="data-value">${weather.humidity !== undefined ? weather.humidity : 'N/A'} %</span>
+                    </div>
+                    <div class="data-field">
+                        <span class="data-icon">🌬️</span>
+                        <strong>Wind Speed:</strong> <span class="data-value">${weather.wind_speed !== undefined ? weather.wind_speed : 'N/A'} m/s</span>
+                    </div>
+                    <div class="data-field">
+                        <span class="data-icon">⏰</span>
+                        <strong>Timestamp:</strong> <span class="data-value">${formattedTimestamp}</span>
+                    </div>
+                `;
+            } else {
+                weatherDataElement.innerHTML = '<p class="status-message">Received invalid or incomplete data. Please try again later.</p>';
+            }
+        };
+    
+        // Handle WebSocket close event
+        socket.onclose = function(e) {
+            console.error('WebSocket closed unexpectedly', e);
+            updateStatusMessage('Connection closed. Please try again later.');
+        };
+    
+        // Handle WebSocket error event
+        socket.onerror = function(e) {
+            console.error('WebSocket error:', e);
+            updateStatusMessage('Error connecting to the server. Please check your connection.');
         };
 
-        socket.onmessage = function (event) {
-            const message = event.data;
-            addMessage('Received: ' + message);
-        };
-
-        socket.onerror = function (error) {
-            addMessage('Error: ' + error);
-        };
-
-        socket.onclose = function () {
-            addMessage('Disconnected from WebSocket.');
-        };
-    }
-
-    // Function to display messages in the UI
-    function addMessage(message) {
-        const messageDiv = document.createElement('div');
-        messageDiv.classList.add('message');
-        messageDiv.textContent = message;
-        messagesDiv.appendChild(messageDiv);
-        messagesDiv.scrollTop = messagesDiv.scrollHeight; // Auto-scroll to the latest message
-    }
-
-    // Automatically connect to WebSocket when the page loads
-    window.onload = connectWebSocket;
-</script>
-
+        function updateStatusMessage(message) {
+            const weatherDataElement = document.getElementById('weather-data');
+            weatherDataElement.innerHTML = `<p class="status-message">${message}</p>`;
+        }
+    </script>
 </body>
 </html>

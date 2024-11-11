@@ -1,8 +1,8 @@
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
+from .producer import fetch_and_send_weather
+from django.shortcuts import render# Import the function
 
-from .producer import send_weather_to_kafka,fetch_and_send_weather
-from django.shortcuts import render
 @api_view(['GET'])
 def weather_by_coordinates(request):
     lat = request.query_params.get('lat')
@@ -11,17 +11,16 @@ def weather_by_coordinates(request):
     if not lat or not lon:
         return Response({'error': 'Latitude and Longitude are required.'}, status=400)
 
-    # Fetch weather data from Agromonitoring API
-    weather_data = fetch_and_send_weather(lat, lon)
+    try:
+        lat, lon = float(lat), float(lon)
+    except ValueError:
+        return Response({'error': 'Invalid latitude or longitude.'}, status=400)
 
-    if "error" in weather_data:
-        return Response({'error': weather_data['error']}, status=400)
+    # Fetch and send weather data
+    fetch_and_send_weather(lat, lon)
 
-    # Send the fetched weather data to Kafka
-    send_weather_to_kafka(weather_data)
-
-    # Return the weather data as a response (without storing it)
-    return Response(weather_data)
+    # Return success message
+    return Response({"message": "Weather data fetch started."})
 
 def weather_test(request):
-    return render(request,"weathertest.html")
+    return render(request,'weathertest.html')
