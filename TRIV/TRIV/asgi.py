@@ -9,6 +9,5 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "TRIV.settings")
 # Define the ASGI application to handle HTTP and WebSocket connections
 application = ProtocolTypeRouter({
     "http": get_asgi_application(),  # Handles HTTP requests
-    "websocket": URLRouter(app.routing.websocket_urlpatterns),
-    "websocket": URLRouter(weather.routing1.websocket_urlpatterns),# Handles WebSocket connections
+    "websocket": URLRouter(app.routing.websocket_urlpatterns+weather.routing1.websocket_urlpatterns),
 })

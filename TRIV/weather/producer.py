@@ -6,7 +6,8 @@ from dotenv import load_dotenv
 import os
 import signal
 import sys
-import argparse  # To parse command-line arguments for lat and lon
+import threading  # To run the periodic task in a separate thread
+from .consumers import WeatherConsumer  # If you want to integrate the consumer class
 
 load_dotenv()
 
@@ -29,7 +30,24 @@ def send_weather_to_kafka(weather_data):
     producer.flush()  # Ensure data is sent before closing
     print("Weather data sent to Kafka.")
 
-def fetch_and_send_weather(LAT, LON):
+def fetch_weather_once(LAT, LON):
+    """
+    Fetches weather data once for a specific lat, lon, and sends it to Kafka.
+    """
+    # Fetch the weather data from Agromonitoring API
+    url = f'https://api.agromonitoring.com/agro/1.0/weather?lat={LAT}&lon={LON}&appid={API_KEY}'
+    response = requests.get(url)
+    
+    if response.status_code == 200:
+        weather_data = response.json()
+        print("Fetched weather data once.")
+        send_weather_to_kafka(weather_data)
+        return weather_data
+    else:
+        print(f"Failed to fetch weather data: {response.status_code}")
+        return {"error": "Failed to fetch data"}
+
+def fetch_and_send_weather_periodically(LAT, LON):
     """
     Fetches weather data at regular intervals and sends it to Kafka.
     """
@@ -40,15 +58,14 @@ def fetch_and_send_weather(LAT, LON):
         
         if response.status_code == 200:
             weather_data = response.json()
-            print("Fetched weather data.")
+            print("Fetched weather data periodically.")
             # Send the weather data to Kafka
             send_weather_to_kafka(weather_data)
         else:
             print(f"Failed to fetch weather data: {response.status_code}")
         
-        # Wait for a specified interval (e.g., 10 minutes)
-        print("Waiting for the next fetch...")
-        time.sleep(60)  # Sleep for 1 minute
+        # Wait for the specified interval (e.g., 1 minute) before fetching again
+        time.sleep(60)  # Sleep for 1 minute (adjust as necessary)
 
 def graceful_shutdown(signal, frame):
     """
@@ -59,15 +76,19 @@ def graceful_shutdown(signal, frame):
     print("Kafka producer closed.")
     sys.exit(0)  # Exit the program
 
-if __name__ == "__main__":
-    # Register the signal handler for graceful shutdown on SIGINT (Ctrl+C)
-    signal.signal(signal.SIGINT, graceful_shutdown)
+def start_periodic_fetching(LAT, LON):
+    """
+    Starts the periodic fetching in a separate thread so that the main thread is not blocked.
+    """
+    periodic_thread = threading.Thread(target=fetch_and_send_weather_periodically, args=(LAT, LON))
+    periodic_thread.daemon = True  # Ensure the thread ends when the program exits
+    periodic_thread.start()
 
-    # Parse command-line arguments for lat and lon
-    parser = argparse.ArgumentParser(description="Fetch and send weather data to Kafka.")
-    parser.add_argument('--lat', type=float, required=True, help="Latitude of the location")
-    parser.add_argument('--lon', type=float, required=True, help="Longitude of the location")
-    args = parser.parse_args()
+def fetch_and_send_weather(lat, lon):
+    """
+    This function will be called in the Django view to fetch and send the weather data.
+    """
+    # Fetch weather once and then start periodic fetching
+    fetch_weather_once(lat, lon)
+    start_periodic_fetching(lat, lon)
 
-    # Run the weather fetching and sending process with dynamic lat and lon
-    fetch_and_send_weather(args.lat, args.lon)

@@ -3,6 +3,7 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from kafka import KafkaConsumer
 from channels.layers import get_channel_layer
 import asyncio
+import threading
 
 KAFKA_TOPIC = 'weather_topic'
 KAFKA_SERVER = 'localhost:9093'
@@ -18,21 +19,25 @@ class WeatherConsumer(AsyncWebsocketConsumer):
         )
         await self.accept()
 
-        # Create Kafka consumer instance in background
-        self._consume_task = asyncio.create_task(self.consume_kafka_messages())
+        # Create Kafka consumer instance in the background
+        # Run Kafka consumer in a separate thread to avoid blocking the event loop
+        self._consume_thread = threading.Thread(target=self.consume_kafka_messages)
+        self._consume_thread.daemon = True  # Ensure the thread is terminated when the application shuts down
+        self._consume_thread.start()
 
     async def disconnect(self, close_code):
-        # Close the Kafka consumer and WebSocket connection on disconnect
-        if hasattr(self, '_consume_task'):
-            self._consume_task.cancel()
+        # Cancel the Kafka consumer thread when WebSocket disconnects
+        if hasattr(self, '_consume_thread'):
+            self._consume_thread.join()  # Ensure the thread stops before exiting
 
+        # Remove the WebSocket from the group
         await self.channel_layer.group_discard(
             self.group_name,
             self.channel_name
         )
 
-    async def consume_kafka_messages(self):
-        """ Consume Kafka messages and push them to WebSocket. """
+    def consume_kafka_messages(self):
+        """ Consume Kafka messages and send them to WebSocket. """
         consumer = KafkaConsumer(
             KAFKA_TOPIC,
             bootstrap_servers=KAFKA_SERVER,
@@ -41,27 +46,27 @@ class WeatherConsumer(AsyncWebsocketConsumer):
             value_deserializer=lambda m: json.loads(m.decode('utf-8'))
         )
 
-        channel_layer = get_channel_layer()
-
-        # Continuously consume messages from Kafka
+        # Loop to consume Kafka messages
         for message in consumer:
             weather_data = message.value
-            # Send weather data to WebSocket group
-            await channel_layer.group_send(
-                'weather_updates',
-                {
-                    'type': 'weather_update',
-                    'weather_data': weather_data
-                }
-            )
+            # Send the weather data to the WebSocket group asynchronously
+            asyncio.run(self.send_weather_to_websocket(weather_data))
 
-    # Receive message from WebSocket (not used here, but could be added for two-way communication)
-    async def receive(self, text_data):
-        pass
+    async def send_weather_to_websocket(self, weather_data):
+        """ Send weather data to the WebSocket client. """
+        # Send the weather data to the WebSocket group
+        await self.channel_layer.group_send(
+            self.group_name,  # Broadcast to all connected WebSocket clients
+            {
+                'type': 'weather_update',
+                'weather_data': weather_data
+            }
+        )
 
-    # Broadcast weather data to WebSocket clients
+    # This method is used to send the message to the WebSocket client
     async def weather_update(self, event):
         weather_data = event['weather_data']
+        # Send the weather data to the WebSocket client
         await self.send(text_data=json.dumps({
             'weather': weather_data
         }))
