@@ -12,7 +12,7 @@ from .consumers import WeatherConsumer  # If you want to integrate the consumer 
 load_dotenv()
 
 # Kafka configuration
-KAFKA_BROKER = 'localhost:9093'  # Your Kafka broker
+KAFKA_BROKER = 'kafka:9092'  # Your Kafka broker
 KAFKA_TOPIC = 'weather_topic'    # Kafka topic to send data
 API_KEY = os.getenv('API_KEY', 'default_api_key')  # Your API key
 

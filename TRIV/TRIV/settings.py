@@ -74,7 +74,8 @@ TEMPLATES = [
     },
 ]
 
-GDAL_LIBRARY_PATH = "/opt/homebrew/Cellar/gdal/3.10.0_1/lib/libgdal.dylib"
+
+
 
 
 WSGI_APPLICATION = "TRIV.wsgi.application"
@@ -86,11 +87,11 @@ WSGI_APPLICATION = "TRIV.wsgi.application"
 # settings.py
 DATABASES = {
     'default': {
-        'ENGINE': 'django.contrib.gis.db.backends.postgis',
+        'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'triv_db',
         'USER': 'triv_user',
-        'PASSWORD': '0755vaibhav',
-        'HOST': 'localhost',
+        'PASSWORD': os.getenv('POSTGRES_PASSWORD'),
+        'HOST': 'postgres',  # Changed to 'postgres', the service name
         'PORT': '5432',
     }
 }
@@ -131,7 +132,16 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
-STATIC_URL = "static/"
+# settings.py
+STATICFILES_FINDERS = [
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+]
+
+STATIC_URL = '/static/'  # URL for serving static files
+  # URL for serving static files
+STATIC_ROOT = '/app/staticfiles'  # Folder where static files will be collected
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field

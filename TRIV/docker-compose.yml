@@ -1,57 +1,92 @@
-
-
 services:
+  postgres:
+    image: postgis/postgis:latest
+    platform: linux/amd64
+    environment:
+      POSTGRES_USER: triv_user
+      POSTGRES_PASSWORD: 0755vaibhav  # Move to .env for security
+      POSTGRES_DB: triv_db
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - triv-net
+    ports:
+      - "5432:5432"  # Expose PostgreSQL
+
   zookeeper:
     image: zookeeper:latest
     platform: linux/amd64
     container_name: zookeeper
     ports:
-      - "2181:2181"
+      - "2181:2181"  # Zookeeper port
     environment:
-      # Optional environment variables for Zookeeper
-      ZOO_HEAP_SIZE: "512m"  # Uncomment and set memory limits if needed
-
+      ZOO_HEAP_SIZE: "512m"
     networks:
       - kafka-net
     volumes:
       - zookeeper-data:/data
       - zookeeper-log:/datalog
-    pull_policy: missing
 
   kafka:
     image: confluentinc/cp-kafka:latest
     platform: linux/amd64
     container_name: kafka
     ports:
-      - "9093:9093"
+      - "9093:9093"  # External access
     environment:
-      KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"  # Zookeeper connection
-
-      # Advertised listeners
+      KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
       KAFKA_ADVERTISED_LISTENERS: "INSIDE://kafka:9092,OUTSIDE://localhost:9093"
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT"
       KAFKA_LISTENERS: "INSIDE://0.0.0.0:9092,OUTSIDE://0.0.0.0:9093"
-
-      # Inter-broker communication listener
       KAFKA_INTER_BROKER_LISTENER_NAME: "INSIDE"
-
-      # Handling large message sizes
       KAFKA_MAX_REQUEST_SIZE: "209715200"
       KAFKA_MESSAGE_MAX_BYTES: "209715200"
-
-      # Offset topic replication
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
-
     depends_on:
       - zookeeper
     networks:
       - kafka-net
     volumes:
       - kafka-data:/var/lib/kafka/data
-    pull_policy: missing
+
+  django:
+    build:
+      context: .
+    # Run collectstatic and start Daphne
+    command: >
+      sh -c "python manage.py collectstatic --noinput &&
+             daphne -b 0.0.0.0 -p 8000 TRIV.asgi:application"
+    volumes:
+      - .:/code  # Mount your code
+      - ./staticfiles:/app/staticfiles  # Mount static volume
+    environment:
+      DATABASE_URL: "postgres://triv_user:0755vaibhav@postgres:5432/triv_db"
+    depends_on:
+      - postgres
+      - kafka
+    networks:
+      - kafka-net
+      - triv-net
+    ports:
+      - "8000:8000"  # Expose Django's ASGI app
+
+  nginx:
+    image: nginx:latest
+    ports:
+      - "80:80"  # Expose Nginx
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./staticfiles:/app/staticfiles  # Share static volume with Django
+    depends_on:
+      - django
+    networks:
+      - triv-net
+    command: /bin/bash -c "sleep 10 && nginx -g 'daemon off;'"
 
 networks:
   kafka-net:
+    driver: bridge
+  triv-net:
     driver: bridge
 
 volumes:
@@ -60,4 +95,8 @@ volumes:
   zookeeper-log:
     driver: local
   kafka-data:
+    driver: local
+  postgres-data:
+    driver: local
+  static_volume:
     driver: local
