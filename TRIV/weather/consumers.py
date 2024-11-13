@@ -6,7 +6,7 @@ import asyncio
 import threading
 
 KAFKA_TOPIC = 'weather_topic'
-KAFKA_SERVER = 'localhost:9093'
+KAFKA_SERVER = 'kafka:9092'
 
 class WeatherConsumer(AsyncWebsocketConsumer):
     async def connect(self):

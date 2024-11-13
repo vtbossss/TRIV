@@ -5,7 +5,7 @@ from kafka import KafkaConsumer
 import time
 
 KAFKA_TOPIC = 'soil_data_topic'
-KAFKA_SERVER = 'localhost:9093'
+KAFKA_SERVER = 'kafka:9092'
 
 class AgroDataConsumer(AsyncWebsocketConsumer):
     async def connect(self):
