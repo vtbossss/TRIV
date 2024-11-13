@@ -85,17 +85,13 @@ WSGI_APPLICATION = "TRIV.wsgi.application"
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 # settings.py
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'triv_db',
-        'USER': 'triv_user',
-        'PASSWORD': os.getenv('POSTGRES_PASSWORD'),
-        'HOST': 'postgres',  # Changed to 'postgres', the service name
-        'PORT': '5432',
-    }
-}
+import dj_database_url
 
+DATABASES = {
+    'default': dj_database_url.config(
+        default=os.getenv("DATABASE_URL")
+    )
+}
 
 
 # Password validation
