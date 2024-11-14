@@ -43,7 +43,10 @@ class WeatherConsumer(AsyncWebsocketConsumer):
             bootstrap_servers=KAFKA_SERVER,
             group_id='django-group',
             auto_offset_reset='latest',
-            value_deserializer=lambda m: json.loads(m.decode('utf-8'))
+            value_deserializer=lambda m: json.loads(m.decode('utf-8')),
+            session_timeout_ms=45000,    # 45 seconds session timeout
+            heartbeat_interval_ms=15000, # Heartbeat every 15 seconds
+            max_poll_interval_ms=600000  # Allow up to 10 minutes for processing
         )
 
         # Loop to consume Kafka messages
