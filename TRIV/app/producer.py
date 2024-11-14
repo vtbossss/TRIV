@@ -14,10 +14,10 @@ import sys
 load_dotenv()
 
 # Access the environment variables
-KAFKA_TOPIC = os.getenv('KAFKA_TOPIC', 'default_topic')  # Use 'default_topic' if not found
-KAFKA_SERVER = os.getenv('KAFKA_SERVER', 'kafka:9092')
-API_KEY = os.getenv('API_KEY', 'default_api_key')
-POLYGON_ID = os.getenv('POLYGON_ID', 'default_polygon_id')
+KAFKA_TOPIC = 'soil_data_topic'  # Use 'default_topic' if not found
+KAFKA_SERVER = 'kafka:9092'
+API_KEY = os.getenv('API_KEY')
+POLYGON_ID = os.getenv('POLYGON_ID')
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 

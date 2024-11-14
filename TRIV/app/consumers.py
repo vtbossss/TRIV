@@ -32,6 +32,8 @@ class AgroDataConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data):
         # This function can be used to handle messages from the frontend, if needed
         pass
+    
+    
 
     async def consume_kafka_messages(self):
         # Use asyncio.to_thread to run the blocking Kafka poll in a background thread
