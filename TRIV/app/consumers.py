@@ -17,7 +17,10 @@ class AgroDataConsumer(AsyncWebsocketConsumer):
             KAFKA_TOPIC,
             bootstrap_servers=KAFKA_SERVER,
             group_id='django-group',
-            auto_offset_reset='latest'
+            auto_offset_reset='latest',
+            session_timeout_ms=45000,    # 45 seconds session timeout
+            heartbeat_interval_ms=15000, # Heartbeat every 15 seconds
+            max_poll_interval_ms=600000  # Allow up to 10 minutes for processing
         )
 
         # Start a background task to consume Kafka messages
