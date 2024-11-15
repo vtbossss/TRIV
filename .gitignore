@@ -33,8 +33,6 @@ db.sqlite3
 
 # Media/uploads and static files
 media/
-staticfiles/
-static/
 node_modules/
 
 # Cache, build, and distribution files
