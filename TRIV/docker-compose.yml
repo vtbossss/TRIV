@@ -75,7 +75,6 @@ services:
     ports:
       - "8000:8000"
 
-  # Producer service to run the producer.py script after all other services are up
   producer:
     build:
       context: .
@@ -96,6 +95,7 @@ services:
 
   nginx:
     image: nginx:latest
+    platform: linux/amd64
     ports:
       - "80:80"  # Expose Nginx
     volumes:
@@ -106,6 +106,8 @@ services:
     networks:
       - triv-net
     command: /bin/bash -c "sleep 10 && nginx -g 'daemon off;'"
+     # Add extra_hosts entry
+    restart: on-failure  # Restart policy
 
 networks:
   kafka-net:
