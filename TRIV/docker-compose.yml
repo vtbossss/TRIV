@@ -99,6 +99,7 @@ services:
 
   nginx:
     image: nginx:latest
+    platform: linux/amd64
     ports:
       - "80:80"
     volumes:
@@ -109,6 +110,8 @@ services:
     networks:
       - triv-net
     command: /bin/bash -c "sleep 10 && nginx -g 'daemon off;'"
+     # Add extra_hosts entry
+    restart: on-failure  # Restart policy
 
   redis:
     image: redis:latest
