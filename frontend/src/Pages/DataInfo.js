@@ -3,63 +3,66 @@ import React, { useEffect, useState } from 'react';
 const DataInfo = () => {
   const [soilData, setSoilData] = useState(null);
   const [statusMessage, setStatusMessage] = useState('Waiting for data...');
+  const [socket, setSocket] = useState(null);
 
   useEffect(() => {
     const connectWebSocket = () => {
-      const socket = new WebSocket(`ws://${window.location.hostname}:8000/ws/agro_data/`);
+      const newSocket = new WebSocket(`ws://${window.location.hostname}:8000/ws/agro_data/`);
       
-      socket.onopen = () => {
+      newSocket.onopen = () => {
+        console.log('WebSocket connection established');
         setStatusMessage('Connected to server, awaiting data...');
       };
-      
-      socket.onmessage = (e) => {
-        // Process data as usual
-        socket.onmessage = (e) => {
-          console.log('Message received from WebSocket:', e.data);
-      
-          const data = JSON.parse(e.data);
-          if (data && data.data && data.data.data) {
-            const soilData = data.data.data;
-            let formattedTimestamp = 'N/A';
-      
-            if (data.data.timestamp) {
-              const timestamp = parseFloat(data.data.timestamp);
-              if (!isNaN(timestamp)) {
-                formattedTimestamp = new Date(timestamp * 1000).toLocaleString();
-              }
+
+      newSocket.onmessage = (e) => {
+        // console.log('Message received from WebSocket:', e.data);
+        const data = JSON.parse(e.data);
+        console.log('Message received from WebSocket:',data);
+        if (data && data.data && data.data.data) {
+          const soilData = data.data.data;
+          let formattedTimestamp = 'N/A';
+
+          if (data.data.timestamp) {
+            const timestamp = parseFloat(data.data.timestamp);
+            if (!isNaN(timestamp)) {
+              formattedTimestamp = new Date(timestamp * 1000).toLocaleString();
             }
-      
-            setSoilData({
-              moisture: soilData.moisture,
-              t0: soilData.t0,
-              t10: soilData.t10,
-              timestamp: formattedTimestamp,
-            });
-          } else {
-            setStatusMessage('Received invalid or incomplete data. Please try again later.');
           }
-        };
+
+          setSoilData({
+            moisture: soilData.moisture,
+            t0: soilData.t0,
+            t10: soilData.t10,
+            timestamp: formattedTimestamp,
+          });
+        } else {
+          setStatusMessage('Received invalid or incomplete data. Please try again later.');
+        }
       };
-      
-      socket.onclose = (e) => {
+
+      newSocket.onclose = (e) => {
         console.error('WebSocket closed unexpectedly', e);
-        setStatusMessage('Connection closed. Attempting to reconnect...');
-        setTimeout(connectWebSocket, 5000);  // Reconnect after 5 seconds
+        setStatusMessage('Reconnecting...');
+        setTimeout(connectWebSocket, 3000); // Attempt reconnection after 3 seconds
       };
-      
-      socket.onerror = (e) => {
+
+      newSocket.onerror = (e) => {
         console.error('WebSocket error:', e);
-        setStatusMessage('Error connecting to the server. Retrying...');
+        setStatusMessage('Error connecting to the server. Please check your connection.');
       };
+
+      setSocket(newSocket);
     };
-    
+
     connectWebSocket();
-    
-    // return () => {
-    //   socket.close();
-    // };
-  }, []);
-  
+
+    // Close WebSocket on component unmount
+    return () => {
+  if (socket?.readyState === WebSocket.OPEN) {
+    socket.close();
+  }
+};
+  }, []); // Empty dependency array to ensure this only runs once on mount
 
   return (
     <div className="flex flex-col items-center justify-center p-6">

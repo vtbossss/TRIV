@@ -3,52 +3,68 @@ import React, { useEffect, useState } from 'react';
 const Weather = () => {
   const [weatherData, setWeatherData] = useState(null);
   const [statusMessage, setStatusMessage] = useState('Waiting for data...');
+  const [socket, setSocket] = useState(null);
 
   useEffect(() => {
-    const socket = new WebSocket(`ws://${window.location.hostname}:8000/ws/weather/`);
+    let reconnectTimeout;
 
-    socket.onopen = () => {
-      console.log('WebSocket connection established');
-      setStatusMessage('Connected to server, awaiting weather data...');
+    const connectWebSocket = () => {
+      const newSocket = new WebSocket(`ws://${window.location.hostname}:8000/ws/weather/`);
+      
+      newSocket.onopen = () => {
+        console.log('WebSocket connection established');
+        setStatusMessage('Connected to server, awaiting weather data...');
+      };
+
+      newSocket.onmessage = (e) => {
+        console.log(`Received message: ${e.data}`);
+        const data = JSON.parse(e.data);
+        if (data && data.weather && data.weather.main && data.weather.wind && data.weather.weather && data.weather.dt) {
+          const weatherMain = data.weather.main;
+          const weatherWind = data.weather.wind;
+          const weatherDescription = data.weather.weather[0];
+          const timestamp = parseFloat(data.weather.dt);
+          const formattedTimestamp = !isNaN(timestamp)
+            ? new Date(timestamp * 1000).toLocaleString()
+            : 'N/A';
+
+          setWeatherData({
+            temperature: weatherMain.temp ? (weatherMain.temp - 273.15).toFixed(2) : 'N/A',
+            humidity: weatherMain.humidity,
+            windSpeed: weatherWind.speed,
+            pressure: weatherMain.pressure,
+            description: `${weatherDescription.main} (${weatherDescription.description})`,
+            timestamp: formattedTimestamp,
+          });
+        } else {
+          setStatusMessage('Received invalid or incomplete data. Please try again later.');
+        }
+      };
+
+      newSocket.onclose = () => {
+        console.error('WebSocket closed unexpectedly');
+        setStatusMessage('Reconnecting...');
+        reconnectTimeout = setTimeout(connectWebSocket, 3000); // Attempt reconnection after 3 seconds
+      };
+
+      newSocket.onerror = () => {
+        console.error('WebSocket error');
+        setStatusMessage('Error connecting to the server. Please check your connection.');
+      };
+
+      setSocket(newSocket);
     };
 
-    socket.onmessage = (e) => {
-      console.log('Message received from WebSocket:', e.data);
-      const data = JSON.parse(e.data);
+    connectWebSocket();
 
-      if (data && data.weather && data.weather.main && data.weather.wind && data.weather.weather && data.weather.dt) {
-        const weatherMain = data.weather.main;
-        const weatherWind = data.weather.wind;
-        const weatherDescription = data.weather.weather[0];
-        
-        const timestamp = parseFloat(data.weather.dt);
-        const formattedTimestamp = !isNaN(timestamp)
-          ? new Date(timestamp * 1000).toLocaleString()
-          : 'N/A';
-
-        setWeatherData({
-          temperature: weatherMain.temp ? (weatherMain.temp - 273.15).toFixed(2) : 'N/A',
-          humidity: weatherMain.humidity,
-          windSpeed: weatherWind.speed,
-          pressure: weatherMain.pressure,
-          description: `${weatherDescription.main} (${weatherDescription.description})`,
-          timestamp: formattedTimestamp,
-        });
-      } else {
-        setStatusMessage('Received invalid or incomplete data. Please try again later.');
-      }
-    };
-
-    socket.onclose = () => {
-      setStatusMessage('Connection closed. Please try again later.');
-    };
-
-    socket.onerror = () => {
-      setStatusMessage('Error connecting to the server. Please check your connection.');
-    };
-
-    return () => socket.close();
-  }, []);
+    return () => {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+          socket.close();
+        }
+        clearTimeout(reconnectTimeout);
+      };
+      
+  }, []); // Empty dependency array to run once on mount
 
   return (
     <div className="flex flex-col items-center justify-center p-6">
