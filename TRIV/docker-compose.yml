@@ -11,14 +11,14 @@ services:
     networks:
       - triv-net
     ports:
-      - "5432:5432"  # Expose PostgreSQL
+      - "5432:5432"
 
   zookeeper:
     image: zookeeper:latest
     platform: linux/amd64
     container_name: zookeeper
     ports:
-      - "2181:2181"  # Zookeeper port
+      - "2181:2181"
     environment:
       ZOO_HEAP_SIZE: "512m"
     networks:
@@ -32,7 +32,7 @@ services:
     platform: linux/amd64
     container_name: kafka
     ports:
-      - "9093:9093"  # External access
+      - "9093:9093"
     environment:
       KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
       KAFKA_ADVERTISED_LISTENERS: "INSIDE://kafka:9092,OUTSIDE://localhost:9093"
@@ -56,6 +56,7 @@ services:
       sh -c "./wait-for-it.sh postgres:5432 -- 
              ./wait-for-it.sh zookeeper:2181 -- 
              ./wait-for-it.sh kafka:9093 -- 
+             ./wait-for-it.sh redis:6379 --  # Ensure Redis is up
              python manage.py collectstatic --noinput &&
              python manage.py makemigrations &&
              python manage.py migrate &&
@@ -63,19 +64,19 @@ services:
     volumes:
       - .:/code
       - ./staticfiles:/app/staticfiles
-      - ./wait-for-it.sh:/wait-for-it.sh  # Make sure the script is accessible in the container
+      - ./wait-for-it.sh:/wait-for-it.sh
     environment:
       DATABASE_URL: "postgres://triv_user:0755vaibhav@postgres:5432/triv_db"
     depends_on:
       - postgres
       - kafka
+      - redis  # Ensure Redis is started before Django
     networks:
       - kafka-net
       - triv-net
     ports:
       - "8000:8000"
 
-  # Producer service to run the producer.py script after all other services are up
   producer:
     build:
       context: .
@@ -83,13 +84,15 @@ services:
       sh -c "./wait-for-it.sh postgres:5432 -- 
              ./wait-for-it.sh zookeeper:2181 -- 
              ./wait-for-it.sh kafka:9093 -- 
-             ./wait-for-it.sh django:8000 --  # Ensure Django is up and running
-             python /code/app/producer.py"  # Adjust path to your producer script
+             ./wait-for-it.sh redis:6379 -- 
+             ./wait-for-it.sh django:8000 --
+             python /code/app/producer.py"
     volumes:
       - .:/code
     depends_on:
       - kafka
       - django
+      - redis  # Ensure Redis is started before producer
     networks:
       - kafka-net
       - triv-net
@@ -97,7 +100,7 @@ services:
   nginx:
     image: nginx:latest
     ports:
-      - "80:80"  # Expose Nginx
+      - "80:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./staticfiles:/app/staticfiles
@@ -106,6 +109,17 @@ services:
     networks:
       - triv-net
     command: /bin/bash -c "sleep 10 && nginx -g 'daemon off;'"
+
+  redis:
+    image: redis:latest
+    platform: linux/amd64
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - triv-net
+    volumes:
+      - redis-data:/data
 
 networks:
   kafka-net:
@@ -123,4 +137,6 @@ volumes:
   postgres-data:
     driver: local
   static_volume:
+    driver: local
+  redis-data:
     driver: local
