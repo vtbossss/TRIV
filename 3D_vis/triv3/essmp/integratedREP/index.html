@@ -1,0 +1,84 @@
+<head>
+  <style> 
+    body { margin: 0; } 
+  </style>
+  <script src="//unpkg.com/3d-force-graph"></script>
+</head>
+
+<body>
+  <div id="3d-graph" style="width: 100vw; height: 100vh;"></div>
+
+  <script>
+    // Initialize WebSocket
+    const socket = new WebSocket('ws://' + window.location.hostname + ':8000/ws/agro_data/');
+    console.log('WebSocket initialized, waiting for data...');
+
+    // Initialize the 3D Force Graph
+    const graphContainer = document.getElementById('3d-graph');
+    const Graph = ForceGraph3D()(graphContainer)
+      .nodeAutoColorBy('group')  // Color nodes by their group
+      .linkAutoColorBy(d => d.group)  // Color links based on the source node's group
+      .linkOpacity(0.5);  // Set link opacity
+
+    // Placeholder for graph data
+    const gData = {
+      nodes: [], // Nodes array
+      links: []  // Links array
+    };
+
+    // WebSocket event listeners
+    socket.onopen = function () {
+      console.log('WebSocket connection established');
+    };
+
+    socket.onmessage = function (e) {
+      console.log('Message received:', e.data);
+
+      try {
+        const messageData = JSON.parse(e.data);
+
+        // Validate and parse data
+        if (messageData && messageData.data && messageData.data.data) {
+          const soilData = messageData.data.data;
+          const timestamp = messageData.data.timestamp;
+
+          // Map soil data to nodes and links
+          const nodes = [
+            { id: 'Moisture', group: 1, value: soilData.moisture || 'N/A' },
+            { id: 'Temp 0m', group: 2, value: soilData.t0 || 'N/A' },
+            { id: 'Temp 10m', group: 3, value: soilData.t10 || 'N/A' },
+            { id: `Timestamp ${new Date(timestamp * 1000).toLocaleString()}`, group: 4 }
+          ];
+
+          const links = [
+            { source: 'Moisture', target: 'Temp 0m', group: 1 },
+            { source: 'Temp 0m', target: 'Temp 10m', group: 2 },
+            { source: 'Temp 10m', target: `Timestamp ${new Date(timestamp * 1000).toLocaleString()}`, group: 3 }
+          ];
+
+          // Update graph data
+          gData.nodes = nodes;
+          gData.links = links;
+
+          // Refresh the graph visualization
+          Graph.graphData(gData);
+          console.log('Graph updated with new soil data');
+        } else {
+          console.warn('Invalid data format received');
+        }
+      } catch (error) {
+        console.error('Error parsing WebSocket data:', error);
+      }
+    };
+
+    socket.onclose = function (e) {
+      console.error('WebSocket closed unexpectedly', e);
+    };
+
+    socket.onerror = function (e) {
+      console.error('WebSocket error:', e);
+    };
+  </script>
+</body>
+
+  
