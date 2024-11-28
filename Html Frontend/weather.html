@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Data</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f2f2f2;
+            color: #333;
+        }
+
+        header {
+            background-color: #4CAF50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 2em;
+        }
+
+        #content {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        #weather-data {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 8px;
+            background-color: #fff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .data-field {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            font-size: 1.1em;
+        }
+
+        .data-field strong {
+            font-weight: 600;
+            color: #4CAF50;
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+
+        .data-icon {
+            font-size: 1.5em;
+            color: #4CAF50;
+            margin-right: 10px;
+        }
+
+        .data-value {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .status-message {
+            font-style: italic;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <header class="bg-gradient-to-r from-green-600 to-blue-600 text-white">
+        <h1 class="text-3xl font-bold">Weather Data</h1>
+    </header>
+
+    <div id="content">
+        <div id="weather-data">
+            <p class="status-message">Waiting for data...</p>
+        </div>
+    </div>
+
+    <script>
+        const socket = new WebSocket('ws://' + window.location.hostname + ':8000/ws/weather/');
+
+        // Connect to the weather WebSocket
+    
+        // WebSocket connection is opened
+        socket.onopen = function() {
+            console.log('WebSocket connection established');
+            updateStatusMessage('Connected to server, awaiting weather data...');
+        };
+    
+        // Handle incoming message from the WebSocket
+        socket.onmessage = function(e) {
+            console.log('Message received from WebSocket:', e.data);
+
+            const data = JSON.parse(e.data);
+            console.log('Parsed data:', data);
+
+            const weatherDataElement = document.getElementById('weather-data');
+
+            // Check if the required weather data exists
+            if (data && data.weather && data.weather.main && data.weather.wind && data.weather.weather && data.weather.dt) {
+                const weatherMain = data.weather.main;
+                const weatherWind = data.weather.wind;
+                const weatherDescription = data.weather.weather[0];
+                
+                // Convert timestamp
+                let formattedTimestamp = 'N/A';
+                const timestamp = parseFloat(data.weather.dt);
+                if (!isNaN(timestamp)) {
+                    formattedTimestamp = new Date(timestamp * 1000).toLocaleString();
+                }
+
+                // Render the weather data
+                weatherDataElement.innerHTML = `
+                    <div class="data-field">
+                        <span class="data-icon">🌡️</span>
+                        <strong>Temperature:</strong> <span class="data-value">${weatherMain.temp ? (weatherMain.temp - 273.15).toFixed(2) : 'N/A'} °C</span>
+                    </div>
+                    <div class="data-field">
+                        <span class="data-icon">💧</span>
+                        <strong>Humidity:</strong> <span class="data-value">${weatherMain.humidity !== undefined ? weatherMain.humidity : 'N/A'} %</span>
+                    </div>
+                    <div class="data-field">
+                        <span class="data-icon">🌬️</span>
+                        <strong>Wind Speed:</strong> <span class="data-value">${weatherWind.speed !== undefined ? weatherWind.speed : 'N/A'} m/s</span>
+                    </div>
+                    <div class="data-field">
+                        <span class="data-icon">⚖️</span>
+                        <strong>Pressure:</strong> <span class="data-value">${weatherMain.pressure !== undefined ? weatherMain.pressure : 'N/A'} hPa</span>
+                    </div>
+                    <div class="data-field">
+                        <span class="data-icon">☁️</span>
+                        <strong>Weather:</strong> <span class="data-value">${weatherDescription.main} (${weatherDescription.description})</span>
+                    </div>
+                    <div class="data-field">
+                        <span class="data-icon">⏰</span>
+                        <strong>Timestamp:</strong> <span class="data-value">${formattedTimestamp}</span>
+                    </div>
+                `;
+            } else {
+                weatherDataElement.innerHTML = '<p class="status-message">Received invalid or incomplete data. Please try again later.</p>';
+            }
+        };
+    
+        // Handle WebSocket close event
+        socket.onclose = function(e) {
+            console.error('WebSocket closed unexpectedly', e);
+            updateStatusMessage('Connection closed. Please try again later.');
+        };
+    
+        // Handle WebSocket error event
+        socket.onerror = function(e) {
+            console.error('WebSocket error:', e);
+            updateStatusMessage('Error connecting to the server. Please check your connection.');
+        };
+
+        function updateStatusMessage(message) {
+            const weatherDataElement = document.getElementById('weather-data');
+            weatherDataElement.innerHTML = `<p class="status-message">${message}</p>`;
+        }
+    </script>
+</body>
+</html>
