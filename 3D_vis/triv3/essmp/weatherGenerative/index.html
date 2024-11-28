@@ -1,0 +1,153 @@
+<head>
+  <style>
+    body {
+      margin: 0;
+    }
+
+    #weather-data {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(255, 255, 255, 0.8);
+      padding: 10px;
+      border-radius: 8px;
+      z-index: 1000;
+    }
+
+    #tooltip {
+      position: absolute;
+      pointer-events: none;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 10px;
+      border-radius: 5px;
+      font-size: 12px;
+      display: none;
+      z-index: 1000;
+    }
+  </style>
+  <script src="//unpkg.com/3d-force-graph"></script>
+</head>
+
+<body>
+  <header>
+    <h1>Weather Data Visualization</h1>
+  </header>
+
+  <div id="weather-data">
+    <p class="status-message">Waiting for data...</p>
+  </div>
+  <div id="tooltip"></div>
+  <div id="3d-graph" style="width: 100vw; height: 100vh;"></div>
+
+  <script>
+    const graphContainer = document.getElementById('3d-graph');
+    const tooltip = document.getElementById('tooltip');
+    const gData = { nodes: [], links: [] };
+
+    // Initialize WebSocket for Weather Data
+    const socket = new WebSocket('ws://' + window.location.hostname + ':8000/ws/weather/');
+    console.log('WebSocket initialized, waiting for weather data...');
+
+    // Initialize the 3D Force Graph
+    const Graph = ForceGraph3D()(graphContainer)
+      .nodeAutoColorBy('group')
+      .linkOpacity(0.5)
+      .graphData(gData)
+      .onNodeHover(node => {
+        if (node) {
+          // Show tooltip with weather details
+          tooltip.style.display = 'block';
+          tooltip.innerHTML = `
+            <div><strong>Temperature:</strong> ${(node.temp - 273.15).toFixed(2)} °C</div>
+            <div><strong>Humidity:</strong> ${node.humidity} %</div>
+            <div><strong>Wind Speed:</strong> ${node.wind} m/s</div>
+            <div><strong>Timestamp:</strong> ${node.timestamp}</div>
+          `;
+        } else {
+          tooltip.style.display = 'none';
+        }
+      })
+      .onNodeClick(() => {
+        tooltip.style.display = 'none';
+      });
+
+    // Update tooltip position on mouse move
+    graphContainer.addEventListener('mousemove', e => {
+      tooltip.style.left = `${e.clientX + 10}px`;
+      tooltip.style.top = `${e.clientY + 10}px`;
+    });
+
+    socket.onopen = function () {
+      console.log('WebSocket connection established');
+      updateStatusMessage('Connected to server, awaiting weather data...');
+    };
+
+    socket.onmessage = function (e) {
+      try {
+        const data = JSON.parse(e.data);
+
+        // Validate and parse weather data
+        if (data && data.weather && data.weather.main && data.weather.wind && data.weather.weather && data.weather.dt) {
+          const weatherMain = data.weather.main;
+          const weatherWind = data.weather.wind;
+          const timestamp = data.weather.dt;
+
+          // Convert timestamp
+          let formattedTimestamp = 'N/A';
+          if (!isNaN(timestamp)) {
+            formattedTimestamp = new Date(timestamp * 1000).toLocaleString();
+          }
+
+          // Update the weather data UI
+          document.getElementById('weather-data').innerHTML = `
+            <div><strong>Temperature:</strong> ${(weatherMain.temp - 273.15).toFixed(2)} °C</div>
+            <div><strong>Humidity:</strong> ${weatherMain.humidity} %</div>
+            <div><strong>Wind Speed:</strong> ${weatherWind.speed} m/s</div>
+            <div><strong>Timestamp:</strong> ${formattedTimestamp}</div>
+          `;
+
+          // Add new node to the graph
+          const newNode = {
+            id: `Weather ${gData.nodes.length}`,
+            group: 5,
+            temp: weatherMain.temp,
+            humidity: weatherMain.humidity,
+            wind: weatherWind.speed,
+            timestamp: formattedTimestamp
+          };
+
+          // Connect to the previous node if it exists
+          if (gData.nodes.length > 0) {
+            const prevNode = gData.nodes[gData.nodes.length - 1];
+            gData.links.push({ source: prevNode.id, target: newNode.id });
+          }
+
+          // Add the new node to graph data
+          gData.nodes.push(newNode);
+          Graph.graphData(gData);
+          console.log('Graph updated with new weather data');
+        } else {
+          console.warn('Invalid data format received');
+          updateStatusMessage('Received invalid or incomplete data. Please try again later.');
+        }
+      } catch (error) {
+        console.error('Error parsing WebSocket data:', error);
+      }
+    };
+
+    socket.onclose = function (e) {
+      console.error('WebSocket closed unexpectedly', e);
+      updateStatusMessage('Connection closed. Please try again later.');
+    };
+
+    socket.onerror = function (e) {
+      console.error('WebSocket error:', e);
+      updateStatusMessage('Error connecting to the server. Please check your connection.');
+    };
+
+    function updateStatusMessage(message) {
+      document.getElementById('weather-data').innerHTML = `<p class="status-message">${message}</p>`;
+    }
+  </script>
+</body>

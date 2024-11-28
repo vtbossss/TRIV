@@ -1,0 +1,154 @@
+<head>
+  <style>
+    body {
+      margin: 0;
+    }
+
+    #data-box {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(255, 255, 255, 0.8);
+      padding: 10px;
+      border-radius: 8px;
+      z-index: 1000;
+      font-family: Arial, sans-serif;
+    }
+
+    #tooltip {
+      position: absolute;
+      pointer-events: none;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 10px;
+      border-radius: 5px;
+      font-size: 12px;
+      display: none;
+      z-index: 1000;
+    }
+  </style>
+  <script src="//unpkg.com/3d-force-graph"></script>
+</head>
+
+<body>
+  <div id="data-box">
+    <p>Waiting for data...</p>
+  </div>
+  <div id="tooltip"></div>
+  <div id="3d-graph" style="width: 100vw; height: 100vh;"></div>
+
+  <script>
+    const graphContainer = document.getElementById('3d-graph');
+    const dataBox = document.getElementById('data-box');
+    const tooltip = document.getElementById('tooltip');
+    const gData = { nodes: [], links: [] };
+    let lastNodeId = null; // Keep track of the last node ID
+
+    // Initialize WebSocket
+    const socket = new WebSocket('ws://' + window.location.hostname + ':8000/ws/agro_data/');
+    console.log('WebSocket initialized, waiting for data...');
+
+    // Initialize the 3D Force Graph
+    const Graph = ForceGraph3D()(graphContainer)
+      .nodeAutoColorBy('group')
+      .linkAutoColorBy('group')
+      .linkOpacity(0.5)
+      .graphData(gData)
+      .onNodeHover(node => {
+        if (node) {
+          tooltip.style.display = 'block';
+          tooltip.innerHTML = `
+            <div><strong>Moisture:</strong> ${node.moisture || 'N/A'}</div>
+            <div><strong>Temp 0m:</strong> ${node.t0 || 'N/A'} °C</div>
+            <div><strong>Temp 10m:</strong> ${node.t10 || 'N/A'} °C</div>
+            <div><strong>Timestamp:</strong> ${node.timestamp || 'N/A'}</div>
+          `;
+        } else {
+          tooltip.style.display = 'none';
+        }
+      });
+
+    graphContainer.addEventListener('mousemove', e => {
+      tooltip.style.left = `${e.clientX + 10}px`;
+      tooltip.style.top = `${e.clientY + 10}px`;
+    });
+
+    // Handle WebSocket events
+    socket.onopen = function () {
+      console.log('WebSocket connection established');
+    };
+
+    socket.onmessage = function (e) {
+      console.log('Message received:', e.data);
+
+      try {
+        const messageData = JSON.parse(e.data);
+        if (messageData && messageData.data && messageData.data.data) {
+          const soilData = messageData.data.data;
+          const timestamp = messageData.data.timestamp;
+
+          // Display the latest data in the top-left box
+          dataBox.innerHTML = `
+            <div><strong>Moisture:</strong> ${soilData.moisture || 'N/A'}</div>
+            <div><strong>Temp 0m:</strong> ${soilData.t0 || 'N/A'} °C</div>
+            <div><strong>Temp 10m:</strong> ${soilData.t10 || 'N/A'} °C</div>
+            <div><strong>Timestamp:</strong> ${new Date(timestamp * 1000).toLocaleString()}</div>
+          `;
+
+          // Add new node to the graph
+          const newNode = {
+            id: `Node ${gData.nodes.length}`,
+            group: 5,
+            moisture: soilData.moisture,
+            t0: soilData.t0,
+            t10: soilData.t10,
+            timestamp: new Date(timestamp * 1000).toLocaleString()
+          };
+
+          // Link to the previous node if it exists
+          if (lastNodeId !== null) {
+            gData.links.push({ source: lastNodeId, target: newNode.id, group: 5 });
+          }
+
+          gData.nodes.push(newNode);
+          lastNodeId = newNode.id;
+
+          // Refresh the graph
+          Graph.graphData(gData);
+          console.log('Graph updated with new soil data');
+        } else {
+          console.warn('Invalid data format received');
+        }
+      } catch (error) {
+        console.error('Error parsing WebSocket data:', error);
+      }
+    };
+
+    socket.onclose = function (e) {
+      console.error('WebSocket closed unexpectedly', e);
+    };
+
+    socket.onerror = function (e) {
+      console.error('WebSocket error:', e);
+    };
+
+    // Periodically add a new node every 5 seconds
+    setInterval(() => {
+      if (gData.nodes.length > 0) {
+        const lastNode = gData.nodes[gData.nodes.length - 1];
+        const newNode = {
+          id: `Generated Node ${gData.nodes.length}`,
+          group: 6,
+          moisture: Math.random().toFixed(2),
+          t0: (Math.random() * 30).toFixed(2),
+          t10: (Math.random() * 30).toFixed(2),
+          timestamp: new Date().toLocaleString()
+        };
+
+        gData.nodes.push(newNode);
+        gData.links.push({ source: lastNode.id, target: newNode.id, group: 6 });
+        Graph.graphData(gData);
+      }
+    }, 5000);
+  </script>
+</body>

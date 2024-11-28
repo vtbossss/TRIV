@@ -1,0 +1,114 @@
+<head>
+    <style>
+      body { margin: 0; }
+      #info-box {
+        position: absolute;
+        pointer-events: none;
+        background-color: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 5px 10px;
+        border-radius: 5px;
+        font-size: 14px;
+        display: none; /* Hidden by default */
+        z-index: 10;
+      }
+    </style>
+    <script src="//unpkg.com/3d-force-graph"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  </head>
+  
+  <body>
+    <div id="3d-graph" style="width: 100vw; height: 100vh;"></div>
+    <div id="info-box"></div> <!-- Hover information box -->
+  
+    <script>
+      // NDVI History Endpoint and Request Data
+      const ndviApiUrl = "http://localhost/ndvi/history/";
+      const requestData = {
+        polygon_id: "672b66d8287b0e7adefd1a54",
+        start_date: "2023-01-01",
+        end_date: "2024-08-19"
+      };
+  
+      // Initialize the 3D Force Graph
+      const graphContainer = document.getElementById('3d-graph');
+      const infoBox = document.getElementById('info-box'); // Reference to the info box
+  
+      const Graph = ForceGraph3D()(graphContainer)
+        .nodeAutoColorBy('group') // Color nodes by their group
+        .linkAutoColorBy(d => d.group) // Color links based on the source node's group
+        .linkOpacity(0.5) // Set link opacity
+        .onNodeHover(node => {
+          // Show the info box when hovering on a node
+          if (node) {
+            infoBox.style.display = 'block';
+            infoBox.innerHTML = `
+              <strong>Node ID:</strong> ${node.id}<br>
+              <strong>Value:</strong> ${node.value}<br>
+              <strong>Date:</strong> ${node.date || 'N/A'}
+            `;
+          } else {
+            // Hide the info box when not hovering over a node
+            infoBox.style.display = 'none';
+          }
+        })
+        .onBackgroundClick(() => {
+          // Hide the info box when clicking the background
+          infoBox.style.display = 'none';
+        });
+  
+      // Update the info box position based on mouse movement
+      document.addEventListener('mousemove', event => {
+        infoBox.style.left = `${event.clientX + 10}px`; // Offset from mouse cursor
+        infoBox.style.top = `${event.clientY + 10}px`;
+      });
+  
+      // Placeholder for graph data
+      const gData = {
+        nodes: [], // Nodes array
+        links: [] // Links array
+      };
+  
+      // Fetch data from the NDVI history API
+      async function fetchNDVIData() {
+        try {
+          const response = await axios.post(ndviApiUrl, requestData);
+          const data = response.data; // Extract the response data
+          console.log('Fetched NDVI data:', data);
+  
+          // Process the NDVI data
+          if (data && Array.isArray(data)) {
+            // Example processing: Map NDVI data to nodes and links
+            const nodes = data.map((entry, index) => ({
+              id: `NDVI ${index + 1}`,
+              group: 1,
+              value: entry.ndvi_value || 'N/A',
+              date: entry.date
+            }));
+  
+            const links = data.slice(1).map((entry, index) => ({
+              source: `NDVI ${index + 1}`,
+              target: `NDVI ${index + 2}`,
+              group: 1
+            }));
+  
+            // Add nodes and links to the graph data
+            gData.nodes = nodes;
+            gData.links = links;
+  
+            // Update the graph visualization
+            Graph.graphData(gData);
+            console.log('Graph updated with NDVI data');
+          } else {
+            console.warn('Invalid or empty NDVI data format');
+          }
+        } catch (error) {
+          console.error('Error fetching NDVI data:', error);
+        }
+      }
+  
+      // Fetch and update the graph with NDVI data
+      fetchNDVIData();
+    </script>
+  </body>
+  

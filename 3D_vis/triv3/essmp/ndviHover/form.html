@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NDVI Data Fetch</title>
+</head>
+<body>
+    <h2>Fetch NDVI History</h2>
+    <form id="ndviForm">
+        <label for="polygon_id">Polygon ID:</label>
+        <input type="text" id="polygon_id" name="polygon_id" required>
+        <br><br>
+        <label for="start_date">Start Date:</label>
+        <input type="date" id="start_date" name="start_date" required>
+        <br><br>
+        <label for="end_date">End Date:</label>
+        <input type="date" id="end_date" name="end_date" required>
+        <br><br>
+        <button type="button" onclick="sendPostRequest()">Submit</button>
+    </form>
+
+    <div id="response">
+        <h3>Response:</h3>
+        <pre id="responseData"></pre>
+    </div>
+    
+
+    <script>
+        async function sendPostRequest() {
+            const url = "http://localhost/ndvi/history/";
+            const form = document.getElementById('ndviForm');
+            const formData = new FormData(form);
+
+            // Convert form data to JSON
+            const jsonData = Object.fromEntries(formData.entries());
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(jsonData)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                document.getElementById('responseData').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('responseData').textContent = `Error: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>
