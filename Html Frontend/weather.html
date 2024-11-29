@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Weather Data</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="shortcut icon" href="css/weather.css" type="image/x-icon">
 
     <style>
         body {
@@ -81,6 +82,34 @@
         <h1 class="text-3xl font-bold">Weather Data</h1>
     </header>
 
+
+    <form id="weather-form" class="max-w-md mx-auto p-6 bg-white rounded-lg shadow-md">
+        <h2 class="text-2xl font-semibold text-center text-gray-700 mb-6">Get Weather Data</h2>
+    
+        <div class="mb-4">
+            <label for="lat" class="block text-gray-600 font-medium mb-2">Latitude:</label>
+            <input type="text" id="lat" name="lat" value="12.9716" required
+                class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
+        </div>
+    
+        <div class="mb-6">
+            <label for="lon" class="block text-gray-600 font-medium mb-2">Longitude:</label>
+            <input type="text" id="lon" name="lon" value="77.5946" required
+                class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
+        </div>
+    
+        <button type="submit"
+            class="w-full py-3 px-4 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 transition duration-200">
+            Get Weather
+        </button>
+    </form>
+    
+    
+    <!-- Toast notification -->
+    <div id="toast" class="toast hidden">Successfully fetched weather data!</div>
+    
+
+
     <div id="content">
         <div id="weather-data">
             <p class="status-message">Waiting for data...</p>
@@ -146,6 +175,7 @@
                         <span class="data-icon">⏰</span>
                         <strong>Timestamp:</strong> <span class="data-value">${formattedTimestamp}</span>
                     </div>
+                    <button class=" mt-6 px-6 py-3 mx-[100px] bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded" id="loginButton"><a href="../3D_vis/triv3/essmp/weatherGenerative/index.html">3D Model</a></button>
                 `;
             } else {
                 weatherDataElement.innerHTML = '<p class="status-message">Received invalid or incomplete data. Please try again later.</p>';
@@ -169,5 +199,7 @@
             weatherDataElement.innerHTML = `<p class="status-message">${message}</p>`;
         }
     </script>
+
+    <script src="javascript/weather.js/"></script>
 </body>
 </html>
