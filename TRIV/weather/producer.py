@@ -65,7 +65,7 @@ def fetch_and_send_weather_periodically(LAT, LON):
             print(f"Failed to fetch weather data: {response.status_code}")
         
         # Wait for the specified interval (e.g., 1 minute) before fetching again
-        time.sleep(60)  # Sleep for 1 minute (adjust as necessary)
+        time.sleep(5)  # Sleep for 1 minute (adjust as necessary)
 
 def graceful_shutdown(signal, frame):
     """
