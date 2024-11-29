@@ -1,39 +1,33 @@
-// Select form and toast elements
 const form = document.getElementById('weather-form');
 const toast = document.getElementById('toast');
 
 form.addEventListener('submit', function(event) {
-    event.preventDefault(); // Prevent form from refreshing the page
+    event.preventDefault(); // Prevent form refresh
 
     // Get latitude and longitude from the form
     const lat = document.getElementById('lat').value;
     const lon = document.getElementById('lon').value;
 
     // API URL with dynamic parameters
-    const url = `http://localhost/weather/?lat=${lat}&lon=${lon}`;
+    const url = `http://localhost:8000/weather/?lat=${lat}&lon=${lon}`;
 
-    // Send GET request with latitude and longitude
-    fetch(url)
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Network response was not ok ' + response.statusText);
-        }
-        return response.json();
-    })
-    .then(data => {
-        console.log('Weather data fetched:', data);
-        showToast(); // Show success toast
-    })
-    .catch(error => {
-        console.error('Error fetching weather data:', error);
-        showToast('Failed to fetch weather data'); // Optionally, show error toast
-    });
+    // Send GET request with Axios
+    axios.get(url)
+        .then(response => {
+            console.log('Weather data fetched:', response.data);
+            showToast('Data fetched successfully!');
+        })
+        .catch(error => {
+            console.error('Error fetching weather data:', error.message);
+            showToast('Failed to fetch weather data');
+        });
 });
 
 // Show the toast notification
-function showToast() {
-    toast.classList.add('show'); // Add show class to toast
-    setTimeout(function() {
-        toast.classList.remove('show'); // Remove show class after 3 seconds
+function showToast(message) {
+    toast.textContent = message;
+    toast.classList.remove('hidden'); // Show toast
+    setTimeout(() => {
+        toast.classList.add('hidden'); // Hide toast after 3 seconds
     }, 3000);
 }
