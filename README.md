@@ -30,7 +30,7 @@ TRIV is a cutting-edge solution designed to revolutionize precision farming thro
 
 ## **Tech Stack**
 
-- **Backend**: Django, Django Channels  
+- **Backend**: Django, Django Channels, Django Rest Framework
 - **Frontend**: HTML, CSS, JavaScript, three.js  
 - **Database**: PostgreSQL  
 - **Real-Time Streaming**: Kafka, WebSockets  
