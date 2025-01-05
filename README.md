@@ -1,4 +1,3 @@
-
 # **TRIV (Trends and Realtime Interactive Visualization)**
 
 TRIV is a cutting-edge solution designed to revolutionize precision farming through real-time data collection, processing, and visualization. Leveraging advanced technologies like **3D data visualization**, **real-time streaming**, and **on-demand insights**, TRIV empowers farmers and agricultural researchers to make data-driven decisions for improved crop health and yield.
